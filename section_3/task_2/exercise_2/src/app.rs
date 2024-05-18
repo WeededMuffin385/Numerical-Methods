@@ -18,6 +18,7 @@ pub struct App {
 	parabolic_spline_coefficients: Vec<f64>,
 
 
+	show_original: bool,
 	show_cubic: bool,
 	show_parabolic: bool,
 	first_derivative: f64,
@@ -37,7 +38,7 @@ impl eframe::App for App {
 
 			ui.horizontal(|ui|{
 				if ui.add(egui::Slider::new(&mut self.first_derivative, -5.0..=5.0).text("first derivative")).changed() {
-					self.generate_coefficients();
+					self.parabolic_spline_coefficients = generate_parabolic_spline_coefficients(&self.points, self.first_derivative);
 				}
 			});
 
@@ -48,11 +49,20 @@ impl eframe::App for App {
 
 			if ui.button("use real derivatives").clicked() {
 				self.first_derivative = f_d(self.points[0][0]);
-				self.generate_coefficients();
+				self.parabolic_spline_coefficients = generate_parabolic_spline_coefficients(&self.points, self.first_derivative);
+			}
+
+			if ui.button("use pseudo derivatives").clicked() {
+				let dx = self.points[1][0] - self.points[0][0];
+				let dy = self.points[1][1] - self.points[0][1];
+
+				self.first_derivative = dy / dx;
+				self.parabolic_spline_coefficients = generate_parabolic_spline_coefficients(&self.points, self.first_derivative);
 			}
 
 			ui.checkbox(&mut self.random, "generate points in random places");
 
+			ui.checkbox(&mut self.show_original, "show original");
 			ui.checkbox(&mut self.show_cubic, "show cubic");
 			ui.checkbox(&mut self.show_parabolic, "show parabolic");
 
@@ -76,6 +86,7 @@ impl Default for App {
 			cubic_spline_coefficients,
 			parabolic_spline_coefficients,
 
+			show_original: true,
 			show_cubic: true,
 			show_parabolic: true,
 
@@ -87,21 +98,23 @@ impl Default for App {
 impl App {
 	fn render_plot(&self, ui: &mut Ui) {
 		Plot::new("my_plot").show(ui, |plot_ui| {
-			let original_line = self.generate_original_line();
-			plot_ui.line(original_line);
+			if self.show_original {
+				let original_line = self.generate_original_line();
+				plot_ui.line(original_line);
+			}
 
 			if self.show_parabolic {
 				let parabolic_spline_line = self.generate_parabolic_spline_line();
 				plot_ui.line(parabolic_spline_line);
 			}
 
-			let original_points = self.generate_original_points();
-			plot_ui.points(original_points);
-
 			if self.show_cubic {
 				let cubic_spline_line = self.generate_cubic_spline_line();
 				plot_ui.line(cubic_spline_line);
 			}
+
+			let points = self.generate_points();
+			plot_ui.points(points);
 		});
 	}
 
@@ -116,10 +129,22 @@ impl App {
 	}
 
 	fn generate_original_line(&self) -> Line {
-		Line::new(PlotPoints::new(self.points.to_vec()))
+		let points_amount = 5000;
+
+		let begin = self.points.first().unwrap()[0];
+		let end = self.points.last().unwrap()[0];
+
+		let delta = end - begin;
+		let step = delta / (points_amount - 1) as f64;
+
+		Line::new(PlotPoints::new((0..points_amount).map(|index| {
+			let x = (index as f64) * step + begin;
+			let y = f(x);
+			[x, y]
+		}).collect()))
 	}
 
-	fn generate_original_points(&self) -> Points {
+	fn generate_points(&self) -> Points {
 		Points::new(self.points.clone()).radius(6.0)
 	}
 
