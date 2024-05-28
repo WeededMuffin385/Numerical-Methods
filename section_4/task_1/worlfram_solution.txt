@@ -1,0 +1,12 @@
+equation = y'[x] == x^2*y[x]^2 - (2 x + 1)*y[x] + 1;
+initialCondition = y[1] == 0;
+solution = NDSolve[{equation, initialCondition}, y, {x, 1, 1.5}]
+
+ySol = y /. First[solution];
+
+points = Range[1.0, 1.5, 0.05];
+values = ySol /@ points;
+
+Print[Transpose[{points, values}]]
+
+Plot[Evaluate[y[x] /. solution], {x, 1, 1.5}, PlotLabel -> "Решение y(x)", AxesLabel -> {"x", "y(x)"}]

@@ -1,25 +1,22 @@
-fn f(x: f64, y: f64) -> f64 {
-    -y * x.cos() + x.cos() * x.sin()
-}
+use crate::app::App;
+
+pub mod model;
+mod app;
+
+
 
 fn main() {
-    let h = 0.05;
-    let mut point = [0.0, -1.0];
+	env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
+	let options = eframe::NativeOptions {
+		viewport: egui::ViewportBuilder::default().with_inner_size([320.0, 240.0]),
+		..Default::default()
+	};
 
-    let n = (0.5 / h) as usize;
-
-    for i in 0..n {
-        let next = [
-            point[0] + h,
-            point[1] + h * f(point[0], point[1]),
-        ];
-
-        let next_part = point[1] + h / 2.0 * f(point[0], point[1]);
-        let next_half = next_part + h / 2.0 * f(point[0] + h / 2.0, next_part);
-
-        let error = (next[1] - next_half) / (2.0_f64.powi(1) - 1.0);
-
-        point = next;
-        println!("{:?} | {error}", point);
-    }
+	eframe::run_native(
+		"My egui App",
+		options,
+		Box::new(|cc| {
+			Box::<App>::default()
+		}),
+	).expect("egui error");
 }
